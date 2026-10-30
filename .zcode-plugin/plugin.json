@@ -1,10 +1,10 @@
 {
   "name": "zcode-polish",
-  "version": "0.3.0",
-  "description": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command and an auto-triggered skill.",
+  "version": "0.4.0",
+  "description": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command, an auto-triggered skill, and an opt-in submit hook.",
   "description_i18n": {
-    "en": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command and an auto-triggered skill.",
-    "zh-CN": "提示词润色：右侧面板输入草稿，选动作改写后一键发到会话；同时提供 /polish 命令与自动触发的技能。五动作，结果可复制可编辑。"
+    "en": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command, an auto-triggered skill, and an opt-in submit hook.",
+    "zh-CN": "提示词润色：右侧面板输入草稿，选动作改写后一键发到会话；同时提供 /polish 命令、自动触发的技能与可选的回车增强 hook（默认关闭，前缀显式触发，未命中原样透传）。五动作，结果可复制可编辑。"
   },
   "author": {
     "name": "Ray",
@@ -20,6 +20,7 @@
     "polish",
     "panel",
     "mcp-app",
+    "hook",
     "zcode-plugin"
   ],
   "skills": "./skills",
@@ -51,5 +52,23 @@
         "availability": "session"
       }
     ]
+  },
+  "hooks": {
+    "enabled": true,
+    "events": {
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node ${ZCODE_PLUGIN_ROOT}/hooks/polish-hook.mjs",
+              "timeoutMs": 20000,
+              "statusMessage": "提示词增强中…",
+              "onError": "allow"
+            }
+          ]
+        }
+      ]
+    }
   }
 }

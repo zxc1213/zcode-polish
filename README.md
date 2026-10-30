@@ -97,6 +97,34 @@ zcode skills list   | grep prompt-polish
 | `protocol` | `anthropic`、`chat`、`responses` 三选一 |
 | `apiKey` | 只存本机，不回传面板；面板里可见的只有「已保存」状态 |
 
+## 回车增强（hook，默认关闭）
+
+`UserPromptSubmit` hook 实现提交前的一键增强：**默认完全关闭**，未配置或未开启时 hook 对所有消息零处理（输出空对象，宿主不注入任何内容，对话原样透传）。
+
+触发条件（按顺序判定，全部满足才增强，任何一步未命中立即透传）：
+
+1. `hook.enabled === true` —— 总开关，默认 `false`
+2. 消息以 `/` 开头 → 永远透传（斜杠命令、其他插件命令绝不触碰）
+3. 命中前缀：默认 `pp `、`润色 `、`润色：`、`润色:`、`polish `（英文不区分大小写）——前缀 = 用户主动要求增强
+4. 剥前缀后的草稿长度在 `[hook.minLength, hook.maxLength]`（默认 4–4000 字符）内
+
+命中时 hook 用面板同一套模型配置增强草稿，通过 `additionalContext` 注入增强版（模型以增强版为准执行，原文消息不变）；增强失败或模型未配置时**透传原文**，绝不阻塞对话。
+
+开启方式（编辑 `~/.zcode/cli/plugins/data/zcode-polish@zcode-polish/config.json`）：
+
+```json
+{
+  "hook": {
+    "enabled": true,
+    "prefixes": ["pp ", "润色 ", "polish "],
+    "minLength": 4,
+    "maxLength": 4000
+  }
+}
+```
+
+体验：输入框打 `pp 帮我写一个分页组件，支持服务端分页`，回车——消息正常发送，模型按增强版执行。
+
 ## 结构
 
 ```

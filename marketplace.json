@@ -7,7 +7,7 @@
         "source": "github",
         "repo": "zxc1213/zcode-polish"
       },
-      "version": "0.3.0",
+      "version": "0.4.0",
       "description": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions, native skill, zero config.",
       "displayName": "Prompt Polish",
       "displayName_i18n": {

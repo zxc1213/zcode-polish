@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 const BLOCKED = new Set(["0.0.0.0", "[::]", "::", "169.254.169.254", "metadata.google.internal", "metadata", "localhost"]);
 
@@ -147,7 +147,7 @@ export async function callModel(cfg, prompt, { timeoutMs = 90000, maxTokens = 40
 export const PLUGIN_DATA = process.env.ZCODE_PLUGIN_DATA || path.join(os.homedir(), ".zcode", "polish-data");
 const CONFIG_FILE = path.join(PLUGIN_DATA, "config.json");
 
-const DEFAULTS = { baseUrl: "", model: "", apiKey: "", protocol: "anthropic" };
+const DEFAULTS = { baseUrl: "", model: "", apiKey: "", protocol: "anthropic", hook: { enabled: false } };
 
 export function loadConfig() {
   try {
@@ -157,8 +157,20 @@ export function loadConfig() {
       model: String(raw.model || ""),
       apiKey: String(raw.apiKey || ""),
       protocol: ["anthropic", "chat", "responses"].includes(raw.protocol) ? raw.protocol : "anthropic",
+      hook: normalizeHook(raw.hook),
     };
   } catch { return { ...DEFAULTS }; }
+}
+
+// hook 段只认已知字段；enabled 默认 false = 未配置时 hook 永远透传，不存在默认劫持。
+export function normalizeHook(value) {
+  const v = value && typeof value === "object" ? value : {};
+  return {
+    enabled: v.enabled === true,
+    prefixes: Array.isArray(v.prefixes) && v.prefixes.length ? v.prefixes.map(String) : ["pp ", "润色 ", "润色：", "润色:", "polish "],
+    minLength: Number.isFinite(v.minLength) ? v.minLength : 4,
+    maxLength: Number.isFinite(v.maxLength) ? v.maxLength : 4000,
+  };
 }
 
 export function saveConfig(patch = {}) {
@@ -169,6 +181,7 @@ export function saveConfig(patch = {}) {
   if (typeof patch.protocol === "string" && ["anthropic", "chat", "responses"].includes(patch.protocol)) next.protocol = patch.protocol;
   if (typeof patch.apiKey === "string" && patch.apiKey.trim()) next.apiKey = patch.apiKey.trim();
   if (patch.clearApiKey === true) next.apiKey = "";
+  if (patch.hook && typeof patch.hook === "object") next.hook = normalizeHook({ ...current.hook, ...patch.hook });
   fs.mkdirSync(PLUGIN_DATA, { recursive: true });
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(next, null, 2) + "\n", { encoding: "utf8", mode: 0o600 });
   return publicConfig(next);
