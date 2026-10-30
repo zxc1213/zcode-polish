@@ -52,23 +52,5 @@
         "availability": "session"
       }
     ]
-  },
-  "hooks": {
-    "enabled": true,
-    "events": {
-      "UserPromptSubmit": [
-        {
-          "hooks": [
-            {
-              "type": "command",
-              "command": "node ${ZCODE_PLUGIN_ROOT}/hooks/polish-hook.mjs",
-              "timeoutMs": 20000,
-              "statusMessage": "提示词增强中…",
-              "onError": "allow"
-            }
-          ]
-        }
-      ]
-    }
   }
 }
