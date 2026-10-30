@@ -1,23 +1,23 @@
 # Prompt Polish · 提示词润色
 
-把你写给 AI 的**粗糙草稿**，改写成清晰、具体、可执行的提示词。ZCode 原生技能，零配置、不需要 API Key——用的是你当前会话的模型，还能读到项目上下文。
+把你写给 AI 的**粗糙草稿**，改写成清晰、具体、可执行的提示词。ZCode 原生插件（一个斜杠命令 + 一个技能），零配置、不需要 API Key——用的是你当前会话的模型，还能读到项目上下文。
 
 ```
 /polish 帮我把登录页改好看一点，顺便加个记住密码
         ↓
-先把草稿改写成规格（代码块，可直接复制），给出改了什么，然后等你说"执行"
+改写后的提示词放进 text 代码块（可一键复制），告诉你改了什么，然后等你选"执行 / 再改一版 / 保持原样"
 ```
 
-## 为什么是一个技能，不是输入框里的按钮
+## 为什么不是输入框里的按钮
 
 ZCode 的插件扩展点只有 `skills`、`commands`、`hooks`、`mcpServers` 和右侧面板 `ui.surfaces`，**没有 composer 按钮**这类接口（主程序里搜不到 `composerAction` 之类的字段）。`UserPromptSubmit` 钩子也只能追加 `additionalContext` 或 `block`，改不了你输入框里的文字。
 
-所以"点一下就把输入框内容换掉"在原生插件里做不到。能原生做到、且最省事的形式是技能：
+所以"点一下就把输入框内容换掉"在原生插件里做不到。原生能做到、且最省事的形式是**斜杠命令 + 技能**：
 
-- 不用另起进程、不用改 ZCode、不碰签名
+- 不用另起进程、不用改 ZCode、不碰签名，也不需要在调试端口下启动
 - 不重启就一直可用，升级 ZCode 不会失效
 - 用当前会话的模型和上下文，不需要配 Key（也就没有 401）
-- 在 composer 的 `/` 选择器里能选，也能被描述自动触发
+- 命令让你在输入框里直接敲，技能负责在你说"帮我改改这段话"时自动触发
 
 ## 安装
 
@@ -35,23 +35,25 @@ zcode plugins marketplace add zxc1213/zcode-polish
 zcode plugins install zcode-polish@zcode-polish
 ```
 
-装完在**新会话**里生效（技能在会话启动时加载）。验证：
+装完在**新会话**里生效（技能和命令在会话启动时加载）。验证：
 
 ```bash
-zcode skills list   # 应出现 polish
+zcode commands list | grep polish   # /polish
+zcode skills list | grep prompt-polish
 ```
 
 ## 用法
 
-三种进入方式，效果一样：
-
-| 方式 | 写法 |
+| 写法 | 效果 |
 | --- | --- |
-| 斜杠命令 | `/polish 帮我把登录页改好看点` |
-| 指定动作 | `/polish 精简 <草稿>`、`/polish 结构化 <草稿>`、`/polish 英文 <草稿>`、`/polish 纠错 <草稿>` |
-| 只写 `/polish` | 取你上一条消息作为草稿；不够像草稿时会直接让你贴过来 |
+| `/polish <草稿>` | 增强 |
+| `/polish 精简 <草稿>` | 精简 |
+| `/polish 结构化 <草稿>` | 整理成规格 |
+| `/polish 英文 <草稿>` | 转英文提示词 |
+| `/polish 纠错 <草稿>` | 只改错别字与语病 |
+| `/polish` | 取你上一条消息作为草稿；不够像草稿时会让你贴过来 |
 
-不想打命令也行：直接在消息里说"帮我把这段话改成更清楚的提示词，先别执行"，描述会命中这个技能。
+不打命令也行：在消息里说"帮我把这段话改成更清楚的提示词，先别执行"，`prompt-polish` 技能会按描述自动触发。
 
 ### 五个动作
 
@@ -80,9 +82,20 @@ zcode skills list   # 应出现 polish
 - 不虚构文件名、接口、字段、业务规则；不确定的写「待确认」
 - 语言跟随草稿（中译英动作除外）
 
+## 结构
+
+```
+.zcode-plugin/plugin.json    插件清单（skills + commands）
+commands/polish.md           /polish 命令：动作分派 + 改写规则 + 输出契约
+skills/prompt-polish/        prompt-polish 技能：自动触发用的同一套规则
+marketplace.json             仓库根同时作为市场清单（source: 本仓库）
+```
+
+命令和技能是同一套规则的两个入口：命令用于主动调用，技能用于自然语言触发。改规则时两边都要动。
+
 ## 兼容性
 
-纯 Markdown 技能，无脚本、无 MCP、无网络请求，不依赖 ZCode 版本内部结构。装上就能用，ZCode 升级不受影响。
+纯 Markdown，无脚本、无 MCP、无网络请求，不依赖 ZCode 内部结构。装上就能用，ZCode 升级不受影响。
 
 ## License
 
