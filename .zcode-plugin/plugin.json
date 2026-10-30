@@ -1,6 +1,6 @@
 {
   "name": "zcode-polish",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
   "description_i18n": {
     "en": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
