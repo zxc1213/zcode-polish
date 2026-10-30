@@ -1,0 +1,13 @@
+{
+  "name": "zcode-polish",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "ZCode 提示词润色插件：右侧面板 + /polish 命令 + 自动触发技能",
+  "scripts": {
+    "test": "node test/server.test.mjs && node test/panel.test.mjs",
+    "test:server": "node test/server.test.mjs",
+    "test:panel": "node test/panel.test.mjs"
+  },
+  "license": "MIT"
+}

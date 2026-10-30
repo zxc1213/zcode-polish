@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>panel harness</title>
+<style>html,body{margin:0;background:#fff} iframe{width:420px;height:720px;border:0;display:block}</style>
+</head>
+<body>
+<!-- 假宿主：iframe 里加载真实的 panel.html，这里按 MCP Apps 协议应答 -->
+<iframe id="app" src="/ui/panel.html"></iframe>
+<script>
+  window.hostLog = [];
+  const app = () => document.getElementById("app").contentWindow;
+  const reply = (id, result) => app().postMessage({ jsonrpc: "2.0", id, result }, "*");
+
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0" || !message.method) return;
+    window.hostLog.push(message.method);
+    const { id, method, params } = message;
+
+    if (method === "ui/initialize") {
+      reply(id, {
+        protocolVersion: "2026-01-26",
+        hostInfo: { name: "harness", version: "0" },
+        hostCapabilities: { message: {} },
+        hostContext: { theme: "light", displayMode: "inline" },
+      });
+      return;
+    }
+    if (method === "tools/call") {
+      const name = params?.name;
+      if (name === "polish_config") {
+        reply(id, { content: [{ type: "text", text: "{}" }], structuredContent: { baseUrl: "https://api.example.com", model: "demo", protocol: "anthropic", apiKeySet: true, ready: true } });
+        return;
+      }
+      if (name === "polish_transform") {
+        window.lastTransform = params?.arguments;
+        reply(id, { content: [{ type: "text", text: "改写后的提示词 PANEL_OK" }], structuredContent: { text: "改写后的提示词 PANEL_OK", action: params?.arguments?.action, ms: 12, via: "sampling" } });
+        return;
+      }
+      if (name === "polish_history") {
+        reply(id, { content: [{ type: "text", text: "{}" }], structuredContent: { items: [] } });
+        return;
+      }
+    }
+    if (method === "ui/message") {
+      window.lastMessage = params;
+      reply(id, {});
+      return;
+    }
+    reply(id, {});
+  });
+</script>
+</body>
+</html>

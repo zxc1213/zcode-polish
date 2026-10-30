@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提示词润色</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#ffffff, #1f2125);
+    --fg: light-dark(#1f2328, #e6e8ec);
+    --muted: light-dark(#6b7280, #9aa1ab);
+    --line: light-dark(rgba(0,0,0,.12), rgba(255,255,255,.16));
+    --field: light-dark(#f7f8fa, #26282d);
+    --hover: light-dark(rgba(0,0,0,.05), rgba(255,255,255,.08));
+    --accent: light-dark(#4f46e5, #8b8bfa);
+    --ok: light-dark(#15803d, #4ade80);
+    --err: light-dark(#b91c1c, #f87171);
+    --ui: 13px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: var(--ui); color: var(--fg); background: var(--bg);
+    padding: 14px 14px 16px; min-width: 240px;
+  }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  h1 { margin: 0; font-size: 14px; font-weight: 650; flex: 1; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+  .dot[data-state="ready"] { background: var(--ok); }
+  .dot[data-state="error"] { background: var(--err); }
+  .tiny { font-size: 11px; color: var(--muted); }
+  .icon-btn {
+    width: 26px; height: 26px; padding: 0; border: 0; border-radius: 7px;
+    background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  .icon-btn:hover { background: var(--hover); color: var(--fg); }
+  textarea {
+    width: 100%; height: 132px; resize: vertical; padding: 9px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--field); color: inherit; font: inherit;
+    outline: none;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0; }
+  .chip {
+    padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; color: inherit; font: inherit; cursor: pointer;
+  }
+  .chip:hover { background: var(--hover); }
+  .chip[data-active="1"] { background: var(--accent); border-color: transparent; color: #fff; }
+  .result {
+    border: 1px solid var(--line); border-radius: 8px; background: var(--field);
+    padding: 9px 10px; white-space: pre-wrap; overflow-wrap: anywhere;
+    max-height: 260px; overflow-y: auto; min-height: 34px;
+  }
+  .result[data-empty="1"] { color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .btn {
+    padding: 6px 12px; border-radius: 7px; border: 1px solid var(--line);
+    background: transparent; color: inherit; font: inherit; cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: var(--hover); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .status { margin-top: 9px; font-size: 12px; color: var(--muted); min-height: 18px; overflow-wrap: anywhere; }
+  .status[data-kind="err"] { color: var(--err); }
+  .status[data-kind="ok"] { color: var(--ok); }
+  .drawer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: none; }
+  .drawer[data-open="1"] { display: block; }
+  .grid { display: grid; grid-template-columns: 74px minmax(0,1fr); gap: 8px; align-items: center; }
+  .grid input, .grid select {
+    width: 100%; height: 30px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--field); color: inherit; font: inherit;
+  }
+  .grid label { color: var(--muted); font-size: 12px; }
+  .hint { margin: 8px 0 0; font-size: 11px; color: var(--muted); line-height: 1.55; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0 0; }
+  .history { margin: 8px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--muted); }
+  .history li { padding: 2px 0; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>提示词润色</h1>
+    <span class="dot" id="dot" title="连接状态"></span>
+    <button class="icon-btn" id="settings" title="设置模型接口">⚙</button>
+  </header>
+
+  <textarea id="draft" placeholder="把草稿贴进来，选一个动作"></textarea>
+
+  <div class="actions" id="actions"></div>
+
+  <div class="result" id="result" data-empty="1">还没有结果</div>
+
+  <div class="row">
+    <button class="btn primary" id="send" disabled>发送到会话</button>
+    <button class="btn" id="copy" disabled>复制</button>
+    <span class="tiny" id="meta"></span>
+  </div>
+
+  <p class="hint">
+    ZCode 没有开放"填入输入框"的接口，所以这里发送的是<b>一条用户消息</b>：发出后可以从会话里再改，或直接让助手执行。
+  </p>
+
+  <div class="status" id="status"></div>
+
+  <div class="drawer" id="drawer">
+    <div class="grid">
+      <label for="baseUrl">Base URL</label>
+      <input id="baseUrl" placeholder="https://open.bigmodel.cn/api/anthropic" autocomplete="off">
+      <label for="model">模型</label>
+      <input id="model" placeholder="GLM-5.2" autocomplete="off">
+      <label for="protocol">协议</label>
+      <select id="protocol">
+        <option value="anthropic">Anthropic（/v1/messages）</option>
+        <option value="chat">OpenAI Chat（/v1/chat/completions）</option>
+        <option value="responses">OpenAI Responses（/v1/responses）</option>
+      </select>
+      <label for="apiKey">API Key</label>
+      <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off">
+    </div>
+    <div class="row">
+      <button class="btn primary" id="save">保存</button>
+      <button class="btn" id="clearKey">清除已存 Key</button>
+    </div>
+    <p class="hint">只允许公网 http(s) 地址；Key 只存在本机插件数据目录，不会回传到面板。</p>
+  </div>
+
+  <hr>
+  <ul class="history" id="history"><li>还没有改写记录</li></ul>
+
+<script>
+(() => {
+  const ACTIONS = [
+    ["enhance", "增强"], ["concise", "精简"], ["structure", "结构化"],
+    ["english", "中英互译"], ["proofread", "纠错"],
+  ];
+  const $ = (id) => document.getElementById(id);
+  const draft = $("draft");
+  const result = $("result");
+  const statusEl = $("status");
+  const dot = $("dot");
+
+  let rpcId = 0;
+  const waiting = new Map();
+  let action = "enhance";
+  let output = "";
+  let initialized = false;
+
+  function post(message) { window.parent.postMessage(message, "*"); }
+
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && waiting.has(message.id)) {
+      const entry = waiting.get(message.id);
+      waiting.delete(message.id);
+      if (message.error) entry.reject(new Error(message.error.message || "宿主返回错误"));
+      else entry.resolve(message.result);
+    }
+  });
+
+  function request(method, params, timeoutMs = 120000) {
+    return new Promise((resolve, reject) => {
+      const id = ++rpcId;
+      const timer = setTimeout(() => {
+        waiting.delete(id);
+        reject(new Error("宿主没有响应：" + method));
+      }, timeoutMs);
+      waiting.set(id, {
+        resolve: (v) => { clearTimeout(timer); resolve(v); },
+        reject: (e) => { clearTimeout(timer); reject(e); },
+      });
+      post({ jsonrpc: "2.0", id, method, params });
+    });
+  }
+  function notify(method, params) { post({ jsonrpc: "2.0", method, params }); }
+
+  function setStatus(text, kind = "") {
+    statusEl.textContent = text || "";
+    statusEl.dataset.kind = kind;
+  }
+  function setDot(state) { dot.dataset.state = state; }
+
+  function renderActions() {
+    const box = $("actions");
+    box.innerHTML = "";
+    for (const [id, label] of ACTIONS) {
+      const button = document.createElement("button");
+      button.className = "chip";
+      button.textContent = label;
+      button.dataset.action = id;
+      if (id === action) button.dataset.active = "1";
+      button.addEventListener("click", () => {
+        action = id;
+        renderActions();
+        void run();
+      });
+      box.appendChild(button);
+    }
+  }
+
+  async function callTool(name, args) {
+    const response = await request("tools/call", { name, arguments: args || {} });
+    if (response?.isError) throw new Error(response.content?.[0]?.text || "调用失败");
+    return response;
+  }
+
+  function setOutput(text) {
+    output = text || "";
+    result.textContent = output || "还没有结果";
+    result.dataset.empty = output ? "0" : "1";
+    $("send").disabled = !output;
+    $("copy").disabled = !output;
+  }
+
+  async function run() {
+    const text = draft.value.trim();
+    if (!text) { setStatus("先把草稿贴进来", "err"); draft.focus(); return; }
+    setStatus("改写中…");
+    for (const button of document.querySelectorAll(".chip")) button.disabled = true;
+    try {
+      const response = await callTool("polish_transform", { text, action });
+      const payload = response.structuredContent || { text: response.content?.[0]?.text || "" };
+      setOutput(payload.text || "");
+      $("meta").textContent = `${payload.ms ?? 0}ms · ${payload.via === "sampling" ? "宿主模型" : "面板配置"}`;
+      setStatus("完成", "ok");
+      setDot("ready");
+      void loadHistory();
+    } catch (error) {
+      setStatus(String(error?.message || error), "err");
+      setDot("error");
+    } finally {
+      for (const button of document.querySelectorAll(".chip")) button.disabled = false;
+    }
+  }
+
+  async function copyToClipboard(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+    try {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
+    } catch { return false; }
+  }
+
+  async function sendToChat() {
+    if (!output) return;
+    // 1) 标准 MCP Apps：把消息投进宿主会话
+    try {
+      await request("ui/message", { role: "user", content: [{ type: "text", text: output }] });
+      setStatus("已发送到会话；ZCode 不开放填输入框，需要就地修改请用「复制」", "ok");
+      return;
+    } catch {}
+    // 2) 可视化桥
+    try {
+      if (window.zcode?.sendFollowUpMessage) {
+        await window.zcode.sendFollowUpMessage({ prompt: output, title: "插入改写后的提示词" });
+        setStatus("已交给 ZCode 处理", "ok");
+        return;
+      }
+    } catch {}
+    // 3) 兜底：复制
+    const copied = await copyToClipboard(output);
+    setStatus(copied ? "宿主没有提供发送接口，已复制到剪贴板，粘贴即可" : "发送失败，请手动复制结果", copied ? "" : "err");
+  }
+
+  async function loadConfig() {
+    try {
+      const response = await callTool("polish_config", {});
+      const cfg = response.structuredContent || {};
+      $("baseUrl").value = cfg.baseUrl || "";
+      $("model").value = cfg.model || "";
+      $("protocol").value = cfg.protocol || "anthropic";
+      $("apiKey").placeholder = cfg.apiKeySet ? "已保存（留空不修改）" : "sk-…";
+      setDot(cfg.ready ? "ready" : "");
+      setStatus(cfg.ready ? "面板配置已就绪" : "未配置模型接口：可以用宿主 sampling，或在设置里填一个公网接口");
+      return cfg;
+    } catch (error) {
+      setStatus("读取配置失败：" + (error?.message || error), "err");
+      return {};
+    }
+  }
+
+  async function saveConfig() {
+    const patch = {
+      baseUrl: $("baseUrl").value.trim(),
+      model: $("model").value.trim(),
+      protocol: $("protocol").value,
+    };
+    const key = $("apiKey").value.trim();
+    if (key) patch.apiKey = key;
+    try {
+      const response = await callTool("polish_config", patch);
+      const cfg = response.structuredContent || {};
+      $("apiKey").value = "";
+      $("apiKey").placeholder = cfg.apiKeySet ? "已保存（留空不修改）" : "sk-…";
+      setDot(cfg.ready ? "ready" : "");
+      setStatus("配置已保存", "ok");
+    } catch (error) {
+      setStatus(String(error?.message || error), "err");
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const response = await callTool("polish_history", {});
+      const items = response.structuredContent?.items || [];
+      const list = $("history");
+      list.innerHTML = "";
+      if (!items.length) { list.innerHTML = "<li>还没有改写记录</li>"; return; }
+      for (const item of items.slice(0, 6)) {
+        const li = document.createElement("li");
+        const time = new Date(item.at).toLocaleTimeString();
+        li.textContent = `${time} · ${item.action} · ${item.chars} 字 · ${item.ms}ms · ${item.via === "sampling" ? "宿主" : "配置"}`;
+        list.appendChild(li);
+      }
+    } catch {}
+  }
+
+  async function boot() {
+    renderActions();
+    setStatus("正在连接 ZCode…");
+    try {
+      await request("ui/initialize", {
+        protocolVersion: "2026-01-26",
+        appInfo: { name: "zcode-polish", version: "0.3.0" },
+        appCapabilities: {},
+      }, 15000);
+      initialized = true;
+      notify("ui/notifications/initialized", {});
+    } catch {
+      // 初始化握手失败也继续：部分宿主不回应 initialize，但工具调用可用
+    }
+    await loadConfig();
+    await loadHistory();
+  }
+
+  $("send").addEventListener("click", () => void sendToChat());
+  $("copy").addEventListener("click", async () => {
+    const copied = await copyToClipboard(output);
+    setStatus(copied ? "已复制" : "复制失败", copied ? "ok" : "err");
+  });
+  $("settings").addEventListener("click", () => {
+    const drawer = $("drawer");
+    drawer.dataset.open = drawer.dataset.open === "1" ? "0" : "1";
+  });
+  $("save").addEventListener("click", () => void saveConfig());
+  $("clearKey").addEventListener("click", async () => {
+    try {
+      await callTool("polish_config", { clearApiKey: true });
+      $("apiKey").placeholder = "sk-…";
+      setStatus("已清除保存的 Key", "ok");
+    } catch (error) { setStatus(String(error?.message || error), "err"); }
+  });
+  draft.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      void run();
+    }
+  });
+
+  new ResizeObserver(() => {
+    try { notify("ui/notifications/size-changed", { width: document.documentElement.clientWidth, height: document.body.scrollHeight }); } catch {}
+  }).observe(document.body);
+
+  void boot();
+  void initialized;
+})();
+</script>
+</body>
+</html>

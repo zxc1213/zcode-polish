@@ -1,10 +1,10 @@
 {
   "name": "zcode-polish",
-  "version": "0.2.1",
-  "description": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
+  "version": "0.3.0",
+  "description": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command and an auto-triggered skill.",
   "description_i18n": {
-    "en": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
-    "zh-CN": "提示词润色：把你写给 AI 的粗糙草稿改写成清晰、具体、可执行的提示词。五个动作（增强/精简/结构化/中译英/纠错），原生技能，零配置，不需要 API Key。"
+    "en": "Prompt polish for ZCode: a right-side panel that rewrites your draft into a clear, executable prompt and sends it to the session. Plus a /polish command and an auto-triggered skill.",
+    "zh-CN": "提示词润色：右侧面板输入草稿，选动作改写后一键发到会话；同时提供 /polish 命令与自动触发的技能。五动作，结果可复制可编辑。"
   },
   "author": {
     "name": "Ray",
@@ -18,9 +18,38 @@
     "prompt-engineering",
     "rewrite",
     "polish",
-    "skill",
+    "panel",
+    "mcp-app",
     "zcode-plugin"
   ],
   "skills": "./skills",
-  "commands": "./commands"
+  "commands": "./commands",
+  "mcpServers": {
+    "polish": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${ZCODE_PLUGIN_ROOT}/mcp/server.mjs"
+      ],
+      "env": {
+        "ZCODE_PLUGIN_DATA": "${ZCODE_PLUGIN_DATA}"
+      },
+      "timeoutMs": 120000
+    }
+  },
+  "ui": {
+    "surfaces": [
+      {
+        "id": "polish",
+        "title": {
+          "zh-CN": "提示词润色",
+          "en-US": "Prompt Polish"
+        },
+        "icon": "sparkles",
+        "server": "polish",
+        "resourceUri": "ui://zcode-polish/panel.html",
+        "availability": "session"
+      }
+    ]
+  }
 }
