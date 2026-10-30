@@ -1,0 +1,23 @@
+{
+  "name": "zcode-polish",
+  "plugins": [
+    {
+      "name": "zcode-polish",
+      "source": {
+        "source": "github",
+        "repo": "zxc1213/zcode-polish"
+      },
+      "version": "0.1.0",
+      "description": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions, native skill, zero config.",
+      "displayName": "Prompt Polish",
+      "displayName_i18n": {
+        "zh-CN": "提示词润色"
+      },
+      "description_i18n": {
+        "en": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions, native skill, zero config.",
+        "zh-CN": "把写给 AI 的粗糙草稿改写成清晰、具体、可执行的提示词：增强 / 精简 / 结构化 / 中译英 / 纠错，原生技能，零配置。"
+      },
+      "category": "productivity"
+    }
+  ]
+}

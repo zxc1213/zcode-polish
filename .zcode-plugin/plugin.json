@@ -1,0 +1,25 @@
+{
+  "name": "zcode-polish",
+  "version": "0.1.0",
+  "description": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
+  "description_i18n": {
+    "en": "Prompt polish for ZCode: rewrite your rough draft into a clear, specific, executable prompt. Five actions (enhance / concise / structure / translate / proofread), native skill, zero config, no API key.",
+    "zh-CN": "提示词润色：把你写给 AI 的粗糙草稿改写成清晰、具体、可执行的提示词。五个动作（增强/精简/结构化/中译英/纠错），原生技能，零配置，不需要 API Key。"
+  },
+  "author": {
+    "name": "Ray",
+    "url": "https://github.com/zxc1213"
+  },
+  "homepage": "https://github.com/zxc1213/zcode-polish",
+  "repository": "https://github.com/zxc1213/zcode-polish",
+  "license": "MIT",
+  "keywords": [
+    "prompt",
+    "prompt-engineering",
+    "rewrite",
+    "polish",
+    "skill",
+    "zcode-plugin"
+  ],
+  "skills": "./skills"
+}
